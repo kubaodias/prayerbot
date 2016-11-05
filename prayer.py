@@ -17,7 +17,7 @@ max_prayers = 10
 
 class PrayerWebhook(object):
     @staticmethod
-    def handle_message(sender_id, message):
+    def handle_message(page_id, sender_id, message):
         response_message = None
         text = message['text']
         lower_text = unicode(text.lower())
@@ -112,19 +112,19 @@ class PrayerWebhook(object):
         return response
 
     @staticmethod
-    def handle_postback(sender_id, postback):
+    def handle_postback(page_id, sender_id, postback):
         payload = json.loads(postback['payload'])
 
         if 'user_event' in payload:
             event_key = payload['user_event']
             event = UserEvent(event_key)
-            callbacks = PrayerWebhook.handle_user_event(sender_id, event, payload)
+            callbacks = PrayerWebhook.handle_user_event(page_id, sender_id, event, payload)
         elif 'prayer_event' in payload:
             event_key = payload['prayer_event']
             event = PrayerEvent(event_key)
             user_id = payload['user_id']
             prayer_id = payload['prayer_id']
-            callbacks = PrayerWebhook.handle_prayer_event(sender_id, user_id, prayer_id, event, payload)
+            callbacks = PrayerWebhook.handle_prayer_event(page_id, sender_id, user_id, prayer_id, event, payload)
         # commit DB changes
         db.session.commit()
         db.session.flush()
@@ -133,18 +133,18 @@ class PrayerWebhook(object):
         return response_callbacks
 
     @staticmethod
-    def handle_user_event(sender_id, event, payload):
+    def handle_user_event(page_id, sender_id, event, payload):
         if event == UserEvent.CONFIRM_INTENTION:
             prayer_id = payload['prayer_id']
             description_value = payload['description']
-            intent = Intent.query.filter_by(id = prayer_id).first()
+            intent = Intent.query.get(prayer_id)
             intent.description = description_value
             return {
                 sender_id : utils.response_text(user_gettext(sender_id, u"You'll be notified when somebody wants to pray for you")),
             }
         elif event == UserEvent.DELETE_INTENTION:
             prayer_id = payload['prayer_id']
-            intent = Intent.query.filter_by(id = prayer_id).first()
+            intent = Intent.query.get(prayer_id)
             if intent:
                 db.session.delete(intent)
                 return {
@@ -156,10 +156,10 @@ class PrayerWebhook(object):
                 }
         elif event == UserEvent.PRAY_FOR_ME:
             # check how many intention user already provided
-            int_cnt = Intent.query.filter(Intent.user_id == sender_id).count()
+            int_cnt = Intent.query.filter_by(user_id = sender_id).count()
 
             if int_cnt < max_intentions:
-                intent = Intent(sender_id, '')
+                intent = Intent(page_id, sender_id, '')
                 intent.ts = int(time.time())
                 db.session.add(intent)
                 return {
@@ -171,10 +171,10 @@ class PrayerWebhook(object):
                 }
         elif event == UserEvent.WANT_TO_PRAY:
 
-            pray_cnt = Intent.query.filter(Intent.commiter_id == sender_id ).count()
+            pray_cnt = Intent.query.filter_by(commiter_id = sender_id ).count()
 
             if pray_cnt < max_prayers:
-                prayers = Intent.query.filter(Intent.commiter_id == 0 ).filter(Intent.user_id != sender_id).limit(displayed_prayers_limit).all()
+                prayers = Intent.query.filter_by(tenant_id = page_id, commiter_id = 0 ).filter(Intent.user_id != sender_id).limit(displayed_prayers_limit).all()
 
                 prayer_elements = map(map_prayer, prayers)
 
@@ -192,7 +192,7 @@ class PrayerWebhook(object):
                 }
         elif event == UserEvent.MY_PRAYERS:
 
-            prayer_elements = map_said_prayer_multiple_bubbles( sender_id )
+            prayer_elements = map_said_prayer_multiple_bubbles( page_id, sender_id )
 
             if prayer_elements == []:
                 return {
@@ -243,7 +243,7 @@ class PrayerWebhook(object):
 
         elif event == UserEvent.THANK_FOR_PRAYER:
             prayer_id = payload['prayer_id']
-            intent = Intent.query.filter_by(id = prayer_id).first()
+            intent = Intent.query.get(prayer_id)
             if intent:
                 commiter_id = intent.commiter_id
                 prayer_desc = intent.description
@@ -259,12 +259,12 @@ class PrayerWebhook(object):
                 }
 
     @staticmethod
-    def handle_prayer_event(sender_id, user_id, prayer_id, event, payload):
+    def handle_prayer_event(page_id, sender_id, user_id, prayer_id, event, payload):
 
         sender_name = user_utils.user_name(sender_id)
         user_name = user_utils.user_name(user_id)
 
-        intent = Intent.query.filter_by(id = prayer_id).one_or_none()
+        intent = Intent.query.get(prayer_id)
 
         if intent:
             intent_description = intent.description
@@ -334,11 +334,11 @@ def map_prayer(prayer):
         'image_url': user_utils.img_url(user_id)
     }
 
-def map_said_prayer_multiple_bubbles(sender_id):
+def map_said_prayer_multiple_bubbles(page_id, sender_id):
 
     elements = None
 
-    for prayer in Intent.query.filter_by(commiter_id=sender_id).limit(displayed_prayers_limit).all():
+    for prayer in Intent.query.filter_by(commiter_id = sender_id).limit(displayed_prayers_limit).all():
 
         user_id = prayer.user_id
         # some limit for checking images

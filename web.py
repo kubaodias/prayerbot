@@ -40,15 +40,16 @@ class WebhookAPI(MethodView):
         print("Webhook request data: " + request.data)
         data = request.get_json()
         entry = data['entry'][0]
+        page_id = entry['id']
         messaging_events = entry['messaging']
         for event in messaging_events:
             sender_id = event['sender']['id']
             if 'message' in event:
-                response_body = webhook.handle_message(sender_id, event['message'])
+                response_body = webhook.handle_message(page_id, sender_id, event['message'])
                 if response_body:
                     self.api.post("/me/messages", response_body)
             elif 'postback' in event:
-                response_callbacks = webhook.handle_postback(sender_id, event['postback'])
+                response_callbacks = webhook.handle_postback(page_id, sender_id, event['postback'])
                 for response_callback in response_callbacks:
                     self.api.post("/me/messages", response_callback)
         return "OK"

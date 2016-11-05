@@ -72,7 +72,7 @@ class PostWebhookTestSuite(unittest.TestCase, JSONFlaskMixin):
             ]
         }
         response = self.json_post(url_for('webhook'), facebook_message)
-        assert mock_handle_message.call_args_list == [((sender_id, message_event),)]
+        assert mock_handle_message.call_args_list == [((page_id, sender_id, message_event),)]
         assert mock_post.call_args_list == [(('/me/messages', webhook_response),)]
         assert response.status_code == 200
 
@@ -112,7 +112,7 @@ class PostWebhookTestSuite(unittest.TestCase, JSONFlaskMixin):
             ]
         }
         response = self.json_post(url_for('webhook'), facebook_message)
-        assert mock_handle_postback.call_args_list == [((sender_id, postback_event),)]
+        assert mock_handle_postback.call_args_list == [((page_id, sender_id, postback_event),)]
         assert mock_post.call_args_list == [
                 (('/me/messages', webhook_response_callback1),),
                 (('/me/messages', webhook_response_callback2),)

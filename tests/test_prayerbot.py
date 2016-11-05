@@ -15,8 +15,9 @@ class PrayerBotTest(unittest.TestCase):
 class MessengerBotTestSuite(PrayerBotTest):
 
     def test_prayer_bot_recipent(self):
+        page_id = '7'
         sender_id = '10'
         message = {'text': 'helpppppp'}
-        res = json.loads(PrayerWebhook.handle_message(sender_id, message))
+        res = json.loads(PrayerWebhook.handle_message(page_id, sender_id, message))
         assert res['recipient']['id'] == '10'
         assert json.loads(res['message'])['text'] == u"Unknown, Bóg błogosławi! Wpisz 'modlitwa', aby zobaczyć opcje, albo 'Biblia', aby otrzymać fragment z Pisma!"

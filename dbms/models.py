@@ -7,20 +7,22 @@ class Intent(db.Model):
     __tablename__ = 't_intent'
 
     id = db.Column(db.Integer, primary_key=True)
+    tenant_id = db.Column(db.String)
     user_id = db.Column(db.String)
     description = db.Column(db.String)
     ts = db.Column(db.Integer)
     commiter_id = db.Column(db.Integer, nullable=False)
     confirmed = db.Column(db.Integer, nullable=False)
 
-    def __init__(self, user_id, description):
+    def __init__(self, tenant_id, user_id, description):
+        self.tenant_id = tenant_id
         self.user_id = user_id
         self.description = description
         self.commiter_id = 0
         self.confirmed = 0
 
     def __repr__(self):
-        return u"<Intent id:{}, user_id: {}, desc:{}>".format(self.id, self.user_id, self.description).encode('utf-8')
+        return u"<Intent id:{}, tenant_id:{}, user_id:{}, desc:{}>".format(self.id, self.tenant_id, self.user_id, self.description).encode('utf-8')
 
 class BibleVerse(db.Model):
     """ Model class for Bible quote """
@@ -43,7 +45,8 @@ class User(db.Model):
 
     __tablename__ = "t_users"
 
-    user_id = db.Column(db.Integer, primary_key=True)
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.String, primary_key=False)
     locale = db.Column(db.String, nullable=False)
 
     def __init__(self, user_id, locale):

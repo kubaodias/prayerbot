@@ -13,23 +13,24 @@ def confirm_praying_for_intention():
     query_prayers = Intent.query.filter( Intent.commiter_id > 0, Intent.confirmed == 0 ).all();
 
     for prayer in query_prayers:
-        if prayer.commiter_id != None and prayer.commiter_id != "":
+        commiter_id = prayer.commiter_id
+        if commiter_id != None and commiter_id != "":
             options = [ {
-                        'title': user_gettext( prayer.commiter_id, u"Yes" ),
+                        'title': user_gettext( commiter_id, u"Yes" ),
                         'payload': PrayerEvent.payload(PrayerEvent.DID_PRAY, prayer.id, prayer.user_id)
                         },
                         {
-                        'title': user_gettext( prayer.commiter_id, u"No" ),
+                        'title': user_gettext( commiter_id, u"No" ),
                         'payload': PrayerEvent.payload(PrayerEvent.DONT_CONFIRM_PRAY, prayer.id, prayer.user_id)
                     } ]
 
             response_message = utils.response_buttons(
-                user_gettext( prayer.commiter_id, u"Did You pray in below request ?\n%(value)s", value=prayer.description ),
+                user_gettext( commiter_id, u"Did You pray in below request ?\n%(value)s", value=prayer.description ),
                 options
                 )
 
             response = json.dumps({
-                        'recipient': { 'id' : prayer.commiter_id },
+                        'recipient': { 'id' : commiter_id },
                                         'message': response_message
                                 })
 
